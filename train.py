@@ -7,7 +7,7 @@ from glob import glob
 from easydict import EasyDict
 from PIL import Image, ImageOps
 from torch import optim
-
+import argparse
 import utils
 from dataset import StegaData
 import torch
@@ -15,21 +15,27 @@ from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 import lpips
 
-with open('cfg\setting.yaml', 'r') as f:
-    args = EasyDict(yaml.load(f, Loader=yaml.SafeLoader))
 
-if not os.path.exists(args.checkpoints_path):
-    os.makedirs(args.checkpoints_path)
+def inference(encoder, image, secret, out_path):
+    """
+    image: [B,C,H,W], B=1
+    secret: 
+    """
+    with torch.no_grad():
+        residual = encoder((secret, image))
+        encoded = image + residual
+        residual = residual.cpu()
+        encoded = encoded.cpu()
+        encoded = np.array(encoded.squeeze(0) * 255, dtype=np.uint8).transpose((1, 2, 0))
+        im = Image.fromarray(encoded)
+        im.save(out_path)
 
-if not os.path.exists(args.saved_models):
-    os.makedirs(args.saved_models)
 
-
-def main():
+def main(args):
     log_path = os.path.join(args.logs_path, str(args.exp_name))
     writer = SummaryWriter(log_path)
 
-    dataset = StegaData(args.train_path, args.secret_size, size=(400, 400))
+    dataset = StegaData(args.data_dir, args.data_list, args.secret_size, size=(400, 400))
     dataloader = DataLoader(dataset, batch_size=args.batch_size, shuffle=True, pin_memory=True)
 
     encoder = model.StegaStampEncoder()
@@ -52,6 +58,12 @@ def main():
 
     height = 400
     width = 400
+    # prep inference
+    cover_sample, secret_sample = dataset[0]
+    Image.fromarray(np.array(cover_sample*255, dtype=np.uint8).transpose((1,2,0))).save(os.path.join(log_path, 'sample_org.png'))
+    cover_sample = cover_sample.unsqueeze(0).cuda()
+    secret_sample = secret_sample.unsqueeze(0).cuda()
+
 
     total_steps = len(dataset) // args.batch_size + 1
     global_step = 0
@@ -100,12 +112,46 @@ def main():
                     optimize_dis.zero_grad()
                     optimize_dis.step()
 
-            # if global_step % 10 == 0:
-            print('Loss = {:.4f}'.format(loss))
+            if global_step % 100 == 0:
+                print(f'Iter #{global_step}: Loss = {loss:.4f}, secret loss = {secret_loss:.4f}, D_loss = {D_loss:.4f}, bit_acc = {bit_acc:.4f}, str_acc = {str_acc:.4f}', flush=True)
+            if global_step % 1000 ==0:
+                out_path = os.path.join(log_path, f'sample_{global_step}.jpg')
+                inference(encoder, cover_sample, secret_sample, out_path)
+            if global_step % 10000 == 0:
+                torch.save(encoder, os.path.join(args.checkpoints_path, f"encoder_{global_step}.pth"))
+                torch.save(decoder, os.path.join(args.checkpoints_path , f"decoder_{global_step}.pth"))
+                torch.save(discriminator, os.path.join(args.checkpoints_path , f"discriminator_{global_step}.pth"))
     writer.close()
     torch.save(encoder, os.path.join(args.saved_models, "encoder.pth"))
     torch.save(decoder, os.path.join(args.saved_models, "decoder.pth"))
 
 
 if __name__ == '__main__':
-    main()
+    parser = argparse.ArgumentParser()
+    parser.add_argument('exp_name', type=str)
+    parser.add_argument('--data_dir', type=str, default='/mnt/fast/nobackup/scratch4weeks/tb0035/projects/mia/datasets/ffhq256_lmdb2')
+    parser.add_argument('--data_list', type=str, default='/mnt/fast/nobackup/scratch4weeks/tb0035/projects/mia/datasets/ffhq256_lmdb2/train.csv')
+    parser.add_argument('--secret_size', type=int, default=100)
+    parser.add_argument('--no_jpeg', action='store_true')
+    parser.add_argument('--no_gan', action='store_true')
+    parser.add_argument('-o', '--output', type=str, default='/mnt/fast/nobackup/scratch4weeks/tb0035/projects/diffsteg/stegastamp_pt/test')
+    opt = parser.parse_args()
+
+    with open('cfg/setting.yaml', 'r') as f:
+        args = EasyDict(yaml.load(f, Loader=yaml.SafeLoader))
+    # args.data_dir = opt.data_dir
+    # args.data_list = opt.data_list
+    # args.exp_name = opt.exp_name
+    # args.secret_size = opt.secret_size
+    args.update(**vars(opt))
+    args.checkpoints_path = os.path.join(opt.output, 'checkpoints/')
+    args.logs_path = os.path.join(opt.output, "logs/")
+    args.saved_models = os.path.join(opt.output, 'saved_models')
+    print(args)
+
+    if not os.path.exists(args.checkpoints_path):
+        os.makedirs(args.checkpoints_path)
+
+    if not os.path.exists(args.saved_models):
+        os.makedirs(args.saved_models)
+    main(args)

@@ -5,20 +5,18 @@ from PIL import Image, ImageOps
 from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms
 import torch
+from tools.image_dataset import ImageDataset
 
 
 class StegaData(Dataset):
-    def __init__(self, data_path, secret_size=100, size=(400, 400)):
-        self.data_path = data_path
+    def __init__(self, data_path, data_list, secret_size=100, size=(400, 400)):
         self.secret_size = secret_size
         self.size = size
-        self.files_list = glob(os.path.join(self.data_path, '*.jpg'))
+        self.files_list = ImageDataset(data_path, data_list)
         self.to_tensor = transforms.ToTensor()
 
     def __getitem__(self, idx):
-        img_cover_path = self.files_list[idx]
-
-        img_cover = Image.open(img_cover_path).convert('RGB')
+        img_cover = self.files_list[idx][0]['x'].convert('RGB')
         img_cover = ImageOps.fit(img_cover, self.size)
         img_cover = self.to_tensor(img_cover)
         # img_cover = np.array(img_cover, dtype=np.float32) / 255.

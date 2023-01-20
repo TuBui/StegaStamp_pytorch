@@ -295,7 +295,8 @@ def build_model(encoder, decoder, discriminator, lpips_fn, secret_input, image_i
     else:
         D_output_real, _ = discriminator(input_warped)
         D_output_fake, D_heatmap = discriminator(encoded_warped)
-
+    # encoded_image = torch.clamp(encoded_image, 0., 1.)  # make sure range in [0,1]
+    
     transformed_image = transform_net(encoded_image, args, global_step)
     decoded_secret = decoder(transformed_image)
     bit_acc, str_acc = get_secret_acc(secret_input, decoded_secret)
@@ -349,7 +350,7 @@ def build_model(encoder, decoder, discriminator, lpips_fn, secret_input, image_i
 
     writer.add_scalar('metric/bit_acc', bit_acc, global_step)
     writer.add_scalar('metric/str_acc', str_acc, global_step)
-    if global_step % 20 == 0:
+    if global_step % 1000 == 0:
         writer.add_image('input/image_input', image_input[0], global_step)
         writer.add_image('input/image_warped', input_warped[0], global_step)
         writer.add_image('encoded/encoded_warped', encoded_warped[0], global_step)

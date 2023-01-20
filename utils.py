@@ -486,13 +486,13 @@ def jpeg_compress_decompress(image,
 
     factor = quality_to_factor(quality)
 
-    compress = compress_jpeg(rounding=rounding, factor=factor)
-    decompress = decompress_jpeg(height, width, rounding=rounding, factor=factor)
+    compress = compress_jpeg(rounding=rounding, factor=factor).cuda()
+    decompress = decompress_jpeg(height, width, rounding=rounding, factor=factor).cuda()
 
     y, cb, cr = compress(image)
     recovered = decompress(y, cb, cr)
 
-    return recovered
+    return recovered.contiguous()
 
 
 if __name__ == '__main__':
