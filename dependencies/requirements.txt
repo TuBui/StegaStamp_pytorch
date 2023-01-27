@@ -1,0 +1,50 @@
+requests == 2.25.1
+setuptools == 59.5.0
+h5py == 3.3.0
+h5py-cache == 1.0
+tqdm == 4.64.0
+pandas == 1.4.2
+Pillow == 8.3.2
+matplotlib == 3.4.2
+
+tensorboard == 2.8.0
+tensorboardx == 2.5
+scikit-learn == 1.0.2
+scikit-image == 0.19.2
+slackclient == 2.9.3
+reportlab == 3.6.0
+scipy == 1.8.0
+ImageHash == 4.2.1
+# pytorch-lightning == 1.7.7
+torchsummary == 1.5.1
+wandb == 0.12.15
+faiss-gpu == 1.7.2
+joblib == 1.0.1
+augly == 0.1.6
+ffmpeg-python == 0.2.0
+ipython == 8.2.0
+dlib == 19.23.1
+streamlit == 1.8.1
+lpips == 0.1.4
+easydict == 1.10
+protobuf == 3.19.*
+albumentations==0.4.3
+diffusers == 0.11.1
+opencv-python==4.1.2.30
+pudb==2019.2
+invisible-watermark == 0.1.5
+imageio==2.9.0
+imageio-ffmpeg==0.4.2
+pytorch-lightning==1.4.2
+omegaconf==2.1.1
+test-tube>=0.7.5
+einops==0.3.0
+torch-fidelity==0.3.0
+torchgeometry==0.1.2
+transformers==4.19.2
+torchmetrics==0.6.0
+pytorch-fid == 0.3.0
+kornia==0.6
+bchlib == 0.14.0
+-e git+https://github.com/CompVis/taming-transformers.git@master#egg=taming-transformers
+-e git+https://github.com/openai/CLIP.git@main#egg=clip
