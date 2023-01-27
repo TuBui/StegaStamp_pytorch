@@ -19,7 +19,7 @@ def normalise(x):
     return x
 
 
-def unormalise(x):
+def unormalise(x, vrange=[-1, 1]):
     """
     Unormalise image tensor to range [0, 255] and RGB array.
     Args:
@@ -27,7 +27,7 @@ def unormalise(x):
     Returns:
         (np.ndarray): Image array of shape (N, H, W, C) in range [0, 255].    
     """
-    x = x * 0.5 + 0.5
+    x = (x - vrange[0])/(vrange[1] - vrange[0])
     x = x * 255
     x = x.permute(0, 2, 3, 1)
     x = x.cpu().numpy().astype(np.uint8)

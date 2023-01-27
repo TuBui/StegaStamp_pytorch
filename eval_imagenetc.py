@@ -65,10 +65,12 @@ def main(args):
     # test
     lpips_alex = lpips.LPIPS(net='alex').to(device)
     noise = RandomImagenetC(1, 5, 'train')
-    noise_ids = noise.corrupt_ids 
+    noise_ids = noise.corrupt_ids
+    noise_strengths = np.array([1,2,3,4,5]) 
     score_lpips, score_ssim, score_psnr, score_mse = [], [], [], []
     bit_acc = {i: [] for i in noise_ids}
-    bit_acc[-1] = []
+    bit_acc[-1] = []  # for clean stego
+    noise_level = {i: [] for i in noise_ids}  # mirror bit acc but store noise levels for later analysis
 
     with torch.no_grad():
         for x, _ in tqdm(dataloader):
@@ -88,7 +90,8 @@ def main(args):
 
             # perturb stego
             noise_id = np.random.choice(noise_ids)
-            stegos_perturbed = [tform(noise(Image.fromarray(im), noise_id)) for im in stegos_unorm]
+            levels = np.random.choice(noise_strengths, len(stegos_unorm))
+            stegos_perturbed = [tform(noise(Image.fromarray(im), noise_id, level)) for im, level in zip(stegos_unorm, levels)]
             stegos_perturbed = torch.stack(stegos_perturbed).to(device)
 
             secret = secret.cpu().numpy()
@@ -100,9 +103,11 @@ def main(args):
             # predict secret perturbed
             secret_pred = RevealNet(stegos_perturbed).cpu().numpy().round()
             bit_acc[noise_id].append(np.mean(secret == secret_pred, axis=1))
+            noise_level[noise_id].append(levels)
 
     score_lpips, score_ssim, score_psnr, score_mse = [np.concatenate(x) for x in [score_lpips, score_ssim, score_psnr, score_mse]]
     bit_acc = {i: np.concatenate(x) for i, x in bit_acc.items()}
+    noise_level = {i: np.concatenate(x) for i, x in noise_level.items()}
 
     print(f"lpips: {score_lpips.mean():.4f} +- {score_lpips.std():.4f}")
     print(f"ssim: {score_ssim.mean():.4f} +- {score_ssim.std():.4f}")
@@ -114,6 +119,8 @@ def main(args):
         name = 'clean' if i==-1 else noise.method_names[i]
         print(f"bit_acc {name}: {bit_acc[i].mean():.4f} +- {bit_acc[i].std():.4f}")
         out[f'bit_acc_{name}'] = bit_acc[i]
+        if i!=-1:
+            out[f'noise_strength_{name}'] = noise_level[i]
 
     bit_acc_noise = np.concatenate([val for i, val in bit_acc.items() if i!=-1])
     print(f"bit_acc noise: {bit_acc_noise.mean():.4f} +- {bit_acc_noise.std():.4f}")

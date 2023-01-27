@@ -40,7 +40,7 @@ class RandomImagenetC(object):
         self.severity = np.arange(min_severity, max_severity+1)
         self.p = p  # probability to apply a transformation
 
-    def __call__(self, x, corrupt_id=None):
+    def __call__(self, x, corrupt_id=None, corrupt_strength=None):
         # input: x PIL image
         if corrupt_id is None:
             if len(self.corrupt_ids)==0:  # do nothing
@@ -49,7 +49,9 @@ class RandomImagenetC(object):
         else:
             assert corrupt_id in range(19)
 
-        severity = np.random.choice(self.severity)
+        severity = np.random.choice(self.severity) if corrupt_strength is None else corrupt_strength
+        assert severity in self.severity, f'Error! Corrupt strength {severity} isnt supported.'
+        
         if np.random.rand() < self.p:
             org_size = x.size 
             x = np.asarray(x.convert('RGB').resize((224, 224), Image.BILINEAR))[:,:,::-1]
@@ -57,7 +59,7 @@ class RandomImagenetC(object):
             x = Image.fromarray(x[:,:,::-1])
             if x.size != org_size:
                 x = x.resize(org_size, Image.BILINEAR)
-        return x
+        return x 
 
     def transform_with_fixed_severity(self, x, severity, corrupt_id=None):
         if corrupt_id is None:
