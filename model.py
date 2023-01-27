@@ -258,6 +258,7 @@ def build_model(encoder, decoder, discriminator, lpips_fn, secret_input, image_i
 
     residual_warped = encoder((secret_input, input_warped))
     encoded_warped = residual_warped + input_warped
+    # encoded_warped = torch.clamp(encoded_warped, 0, 1)
 
     residual = torchgeometry.warp_perspective(residual_warped, M[:, 0, :, :], dsize=(400, 400), flags='bilinear')
 
@@ -289,13 +290,15 @@ def build_model(encoder, decoder, discriminator, lpips_fn, secret_input, image_i
         encoded_image = torchgeometry.warp_perspective(encoded_image, M[:, 0, :, :], dsize=(400, 400), flags='bilinear')
         encoded_image += (1 - mask) * torch.roll(image_input, 1, 0)
 
+    # encoded_image = torch.clamp(encoded_image, 0., 1.)  # make sure range in [0,1]
+
     if borders == 'no_edge':
         D_output_real, _ = discriminator(image_input)
         D_output_fake, D_heatmap = discriminator(encoded_image)
     else:
         D_output_real, _ = discriminator(input_warped)
         D_output_fake, D_heatmap = discriminator(encoded_warped)
-    # encoded_image = torch.clamp(encoded_image, 0., 1.)  # make sure range in [0,1]
+    
     
     transformed_image = transform_net(encoded_image, args, global_step)
     decoded_secret = decoder(transformed_image)

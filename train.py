@@ -110,7 +110,11 @@ def main(args):
                 optimize_loss.step()
                 if not args.no_gan:
                     optimize_dis.zero_grad()
+                    # torch.nn.utils.clip_grad_value_(d_vars, 0.25)
                     optimize_dis.step()
+                    # with torch.no_grad():
+                    #     for var in d_vars:
+                    #         var.clamp_(-0.01, 0.01)
 
             if global_step % 100 == 0:
                 print(f'Iter #{global_step}: Loss = {loss:.4f}, secret loss = {secret_loss:.4f}, D_loss = {D_loss:.4f}, bit_acc = {bit_acc:.4f}, str_acc = {str_acc:.4f}', flush=True)
