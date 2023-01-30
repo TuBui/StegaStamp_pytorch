@@ -59,7 +59,7 @@ WORKDIR "${HOME}"
 ARG CONDA_FILE="Miniconda3-py38_4.9.2-Linux-x86_64.sh"
 ARG PYTHON_VER="3.8.5"
 ENV CONDA_AUTO_UPDATE_CONDA=false
-ENV PATH="${HOME}"/miniconda/bin:$PATH
+ENV PATH=${HOME}/miniconda/bin:$PATH
 RUN curl -sLo ~/miniconda.sh https://repo.continuum.io/miniconda/${CONDA_FILE} \
  && chmod +x ~/miniconda.sh \
  && ~/miniconda.sh -b -p ~/miniconda \
@@ -84,4 +84,6 @@ RUN git clone https://github.com/hendrycks/robustness.git && cd robustness/Image
 
 # pip packages
 ADD ./requirements.txt ./
-RUN pip install -r requirements.txt
+ADD ./requirements2.txt ./
+RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r requirements2.txt
